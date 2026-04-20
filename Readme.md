@@ -103,4 +103,19 @@ This project implemented a complete tracking-by-detection pipeline on VisDrone, 
 
 ---
 
+## 8. Visual Results
+
+### Detection
+
+![Detection result 1](visual_sample_0114.png)
+
+![Detection result 2](visual_sample_0228.png)
+
+### Tracking Videos
+
+- [Tracking video 1](https://drive.google.com/file/d/1JMrIw2ZPGvUHtY7hQNIWZh7XvcJjk5iO/view?usp=sharing)
+- [Tracking video 2](https://drive.google.com/file/d/1yL3p88tFvmvh5CaV-7Z3p4E4Iekg7LMd/view?usp=sharing)
+
+---
+
 *All experiments were conducted in a notebook environment under free-GPU constraints. Tracking results correspond to the detector checkpoint used in the original workflow (`best_model.pth`), not the small-anchor retrained model.*
