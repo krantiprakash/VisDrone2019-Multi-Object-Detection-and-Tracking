@@ -16,7 +16,22 @@ The primary goal is to train a detector on VisDrone-DET and evaluate it on DET-v
 
 ---
 
-## 3. Dataset Overview
+## 3. Visual Results
+
+### Detection
+
+![Detection result 1](visual_sample_0114.png)
+
+![Detection result 2](visual_sample_0228.png)
+
+### Tracking Videos
+
+- [Tracking video 1](https://drive.google.com/file/d/1JMrIw2ZPGvUHtY7hQNIWZh7XvcJjk5iO/view?usp=sharing)
+- [Tracking video 2](https://drive.google.com/file/d/1yL3p88tFvmvh5CaV-7Z3p4E4Iekg7LMd/view?usp=sharing)
+
+---
+
+## 4. Dataset Overview
 
 Three dataset subsets were used: VisDrone2019-DET-train (6,471 images), DET-val (548 images), and MOT-val (7 sequences). Ignored regions and the ambiguous "others" category were excluded, leaving 10 trainable classes mapped to 11 detector outputs including background.
 
@@ -26,7 +41,7 @@ These findings directly influenced all subsequent design decisions around anchor
 
 ---
 
-## 4. System Architecture
+## 5. System Architecture
 
 The overall pipeline follows a standard tracking-by-detection approach:
 
@@ -38,9 +53,9 @@ The overall pipeline follows a standard tracking-by-detection approach:
 
 ---
 
-## 5. Implementation Details
+## 6. Implementation Details
 
-### 5.1 Detection Model
+### 6.1 Detection Model
 
 A Torchvision Faster R-CNN with a ResNet-50 FPN backbone was used, initialized from ImageNet pretrained weights. The classification head was replaced to match the 11-class VisDrone setup. This architecture was selected as a well-established two-stage detector with strong feature pyramid support for multi-scale objects.
 
@@ -48,13 +63,13 @@ Preprocessing followed Torchvision defaults: ImageNet normalization, random hori
 
 Training used: batch size 4, 16 epochs, SGD (lr = 0.005, momentum = 0.9, weight decay = 1e-4), and a StepLR scheduler (step size 5, γ = 0.1).
 
-### 5.2 Anchor Analysis and Refinement
+### 6.2 Anchor Analysis and Refinement
 
 The baseline detector used anchor sizes [32, 64, 128, 256, 512]. An anchor coverage audit showed that this configuration covered only 63.27% of ground-truth boxes, leaving over 126,000 boxes unmatched. Given the EDA finding that the majority of VisDrone objects are sub-32px, this mismatch was expected.
 
 A second experiment was run with smaller anchors [8, 16, 32, 64, 128] to improve coverage for tiny objects. This was a data-driven correction rather than a speculative tuning choice.
 
-### 5.3 Tracking
+### 6.3 Tracking
 
 Two ByteTrack-style association variants were evaluated on top of the same detector checkpoint (`best_model.pth`):
 
@@ -65,9 +80,9 @@ Evaluating both variants on the same detections ensures that any metric differen
 
 ---
 
-## 6. Results
+## 7. Results
 
-### 6.1 Detection
+### 7.1 Detection
 
 | Metric | Baseline (anchors 32–512) | Small-Anchor (anchors 8–128) |
 |---|---|---|
@@ -80,7 +95,7 @@ Evaluating both variants on the same detections ensures that any metric differen
 
 Smaller anchors improved mAP, mAR, and notably mAR@0.50 by a large margin (+39.6 pp), confirming the anchor coverage hypothesis.
 
-### 6.2 Tracking
+### 7.2 Tracking
 
 | Metric | Greedy Tracker | Hungarian Tracker |
 |---|---|---|
@@ -97,24 +112,9 @@ The negative MOTA values arise from a high number of false positives and missed 
 
 ---
 
-## 7. Conclusion
+## 8. Conclusion
 
 This project implemented a complete tracking-by-detection pipeline on VisDrone, grounded in careful data analysis. The EDA-driven anchor redesign produced meaningful detection gains, particularly in recall at IoU 0.50. The comparison between greedy and Hungarian association strategies revealed a clear trade-off: global optimality (Hungarian) improves aggregate metrics, while greedy association reduces identity fragmentation. Future improvements could include stronger small-object detectors (e.g., DINO or YOLOv8-nano), confidence calibration to reduce false positives, and a ReID-based appearance model to stabilize identities under occlusion.
-
----
-
-## 8. Visual Results
-
-### Detection
-
-![Detection result 1](visual_sample_0114.png)
-
-![Detection result 2](visual_sample_0228.png)
-
-### Tracking Videos
-
-- [Tracking video 1](https://drive.google.com/file/d/1JMrIw2ZPGvUHtY7hQNIWZh7XvcJjk5iO/view?usp=sharing)
-- [Tracking video 2](https://drive.google.com/file/d/1yL3p88tFvmvh5CaV-7Z3p4E4Iekg7LMd/view?usp=sharing)
 
 ---
 
