@@ -20,17 +20,27 @@ def get_paths() -> dict:
         # dataset roots
         "det_train"       : base_data / "VisDrone2019-DET-train",
         "det_val"         : base_data / "VisDrone2019-DET-val",
+        "det_test"        : base_data / "VisDrone2019-DET-test",
         "mot_val"         : base_data / "VisDrone2019-MOT-val",
 
-        # dataset subfolders
+        # DET train subfolders
         "det_train_images": base_data / "VisDrone2019-DET-train" / "images",
         "det_train_ann"   : base_data / "VisDrone2019-DET-train" / "annotations",
         "det_train_labels": base_data / "VisDrone2019-DET-train" / "labels",
-        "det_val_images"  : base_data / "VisDrone2019-DET-val"   / "images",
-        "det_val_ann"     : base_data / "VisDrone2019-DET-val"   / "annotations",
-        "det_val_labels"  : base_data / "VisDrone2019-DET-val"   / "labels",
-        "mot_val_seq"     : base_data / "VisDrone2019-MOT-val"   / "sequences",
-        "mot_val_ann"     : base_data / "VisDrone2019-MOT-val"   / "annotations",
+
+        # DET val subfolders
+        "det_val_images"  : base_data / "VisDrone2019-DET-val" / "images",
+        "det_val_ann"     : base_data / "VisDrone2019-DET-val" / "annotations",
+        "det_val_labels"  : base_data / "VisDrone2019-DET-val" / "labels",
+
+        # DET test subfolders
+        "det_test_images" : base_data / "VisDrone2019-DET-test" / "images",
+        "det_test_ann"    : base_data / "VisDrone2019-DET-test" / "annotations",
+        "det_test_labels" : base_data / "VisDrone2019-DET-test" / "labels",
+
+        # MOT val subfolders
+        "mot_val_seq"     : base_data / "VisDrone2019-MOT-val" / "sequences",
+        "mot_val_ann"     : base_data / "VisDrone2019-MOT-val" / "annotations",
 
         # output folders per stage
         "out_data"        : base_work / "data",
@@ -62,6 +72,8 @@ def verify_paths(paths: dict) -> None:
         "det_train_ann",
         "det_val_images",
         "det_val_ann",
+        "det_test_images",
+        "det_test_ann",
         "mot_val_seq",
         "mot_val_ann",
     ]

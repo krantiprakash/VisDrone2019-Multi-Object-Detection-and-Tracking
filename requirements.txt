@@ -22,8 +22,8 @@ python-multipart==0.0.9
 pydantic==2.7.1
 
 # ── deferred — install separately when needed ─────────────────
-# sahi                                         # version needs verification
+sahi==0.11.36                                         # version needs verification
 # git+https://github.com/KaiyangZhou/deep-person-reid.git  # Python 3.12 compat uncertain
-# pycocotools==2.0.7                           # needs C++ Build Tools on Windows
+pycocotools==2.0.7                           # needs C++ Build Tools on Windows
 # git+https://github.com/JonathonLuiten/TrackEval.git      # needed at evaluation stage
 # openvino                                     # needed at export stage only
