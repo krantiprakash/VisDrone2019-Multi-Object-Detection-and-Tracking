@@ -11,3 +11,5 @@ __pycache__/
 Kranti_Prakash_Documentation.pdf
 PA_Assignment.pdf
 *.pdf
+myenv/
+output/

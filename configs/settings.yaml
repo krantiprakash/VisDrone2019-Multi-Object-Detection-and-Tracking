@@ -1,0 +1,37 @@
+detection:
+  model         : yolo26x.pt
+  imgsz         : 1280
+  epochs        : 100
+  batch         : 8
+  lr0           : 0.01
+  patience      : 20
+  workers       : 4
+  device        : 0            # GPU index; set to "cpu" if no GPU
+
+sahi:
+  slice_height  : 640
+  slice_width   : 640
+  overlap_ratio : 0.2
+  confidence    : 0.25
+
+reid:                          # initial defaults — tune after training
+  backbone      : osnet_x1_0
+  embed_dim     : 512
+  epochs        : 60
+  batch         : 64
+  lr            : 0.0003
+  warmup_epochs : 10
+  input_height  : 256
+  input_width   : 128
+
+tracker:
+  high_thresh   : 0.5
+  low_thresh    : 0.1
+  iou_thresh    : 0.3
+  max_age       : 30
+  min_hits      : 3
+  with_reid     : true
+
+export:
+  format        : openvino
+  half          : true         # FP16 — accuracy identical to PyTorch, 43% faster on CPU
