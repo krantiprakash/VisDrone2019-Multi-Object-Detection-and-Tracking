@@ -148,42 +148,54 @@ def train(paths: dict, settings: dict) -> None:
     out_dir = paths["out_detection"]
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    device = det_cfg["device"] if torch.cuda.is_available() else "cpu"
+    last_pt   = out_dir / "yolo26x_visdrone" / "weights" / "last.pt"
+    device    = det_cfg["device"] if torch.cuda.is_available() else "cpu"
 
-    print("\n[train] Loading model:", det_cfg["model"])
-    model = YOLO(det_cfg["model"])
+    if last_pt.exists():
+        print(f"\n[train] Resuming from checkpoint: {last_pt}")
+        model = YOLO(str(last_pt))
+        model.train(
+            resume  = True,
+            device  = device,
+            project = str(out_dir),
+            name    = "yolo26x_visdrone",
+            exist_ok= True,
+        )
+    else:
+        print("\n[train] No checkpoint found. Starting fresh fine-tuning...")
+        model = YOLO(det_cfg["model"])
 
-    total_params = sum(p.numel() for p in model.model.parameters())
-    print(f"  total params : {total_params:,}")
-    print(f"  note         : all params fine-tuned, requires_grad set internally by Ultralytics")
+        total_params = sum(p.numel() for p in model.model.parameters())
+        print(f"  total params : {total_params:,}")
+        print(f"  note         : all params fine-tuned, requires_grad set internally by Ultralytics")
 
-    print("[train] Starting fine-tuning on VisDrone-DET...")
-    print(f"  model    : {det_cfg['model']}")
-    print(f"  imgsz    : {det_cfg['imgsz']}")
-    print(f"  epochs   : {det_cfg['epochs']}")
-    print(f"  batch    : {det_cfg['batch']}")
-    print(f"  lr0      : {det_cfg['lr0']}")
-    print(f"  patience : {det_cfg['patience']}")
-    print(f"  workers  : {det_cfg['workers']}")
-    print(f"  device   : {device}")
-    print(f"  data     : {det_yaml}")
-    print(f"  save_dir : {out_dir}\n")
+        print("[train] Starting fine-tuning on VisDrone-DET...")
+        print(f"  model    : {det_cfg['model']}")
+        print(f"  imgsz    : {det_cfg['imgsz']}")
+        print(f"  epochs   : {det_cfg['epochs']}")
+        print(f"  batch    : {det_cfg['batch']}")
+        print(f"  lr0      : {det_cfg['lr0']}")
+        print(f"  patience : {det_cfg['patience']}")
+        print(f"  workers  : {det_cfg['workers']}")
+        print(f"  device   : {device}")
+        print(f"  data     : {det_yaml}")
+        print(f"  save_dir : {out_dir}\n")
 
-    model.train(
-        data       = str(det_yaml),
-        epochs     = det_cfg["epochs"],
-        imgsz      = det_cfg["imgsz"],
-        batch      = det_cfg["batch"],
-        lr0        = det_cfg["lr0"],
-        patience   = det_cfg["patience"],
-        workers    = det_cfg["workers"],
-        device     = device,
-        project    = str(out_dir),
-        name       = "yolo26x_visdrone",
-        exist_ok   = True,
-        pretrained = True,
-        verbose    = True,
-    )
+        model.train(
+            data       = str(det_yaml),
+            epochs     = det_cfg["epochs"],
+            imgsz      = det_cfg["imgsz"],
+            batch      = det_cfg["batch"],
+            lr0        = det_cfg["lr0"],
+            patience   = det_cfg["patience"],
+            workers    = det_cfg["workers"],
+            device     = device,
+            project    = str(out_dir),
+            name       = "yolo26x_visdrone",
+            exist_ok   = True,
+            pretrained = True,
+            verbose    = True,
+        )
 
     train_out_dir = out_dir / "yolo26x_visdrone"
     best_pt       = train_out_dir / "weights" / "best.pt"
