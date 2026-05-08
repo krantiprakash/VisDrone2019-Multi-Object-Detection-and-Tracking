@@ -13,15 +13,15 @@ from configs.paths import get_paths, verify_paths
 
 # ── label definitions ─────────────────────────────────────────
 VISDRONE_CLASSES = {
-    1: "pedestrian",
-    2: "people",
-    3: "bicycle",
-    4: "car",
-    5: "van",
-    6: "truck",
-    7: "tricycle",
-    8: "awning-tricycle",
-    9: "bus",
+    1 : "pedestrian",
+    2 : "people",
+    3 : "bicycle",
+    4 : "car",
+    5 : "van",
+    6 : "truck",
+    7 : "tricycle",
+    8 : "awning-tricycle",
+    9 : "bus",
     10: "motor",
 }
 
@@ -29,7 +29,7 @@ VISDRONE_CLASSES = {
 LABEL_MAP = {raw: idx for idx, raw in enumerate(sorted(VISDRONE_CLASSES.keys()))}
 
 
-# ── core functions ────────────────────────────────────────────
+# ── annotation parser ─────────────────────────────────────────
 def parse_visdrone_annotation(ann_path: Path):
     """
     Parse a single VisDrone DET annotation file.
@@ -37,7 +37,7 @@ def parse_visdrone_annotation(ann_path: Path):
 
     Returns:
         boxes   : list of valid (class_id_raw, x, y, w, h)
-        skipped : count of lines skipped
+        skipped : count of lines skipped due to invalid score, class, or box
     """
     boxes   = []
     skipped = 0
@@ -49,10 +49,10 @@ def parse_visdrone_annotation(ann_path: Path):
                 skipped += 1
                 continue
             try:
-                x   = int(parts[0])
-                y   = int(parts[1])
-                w   = int(parts[2])
-                h   = int(parts[3])
+                x     = int(parts[0])
+                y     = int(parts[1])
+                w     = int(parts[2])
+                h     = int(parts[3])
                 score = int(parts[4])
                 cat   = int(parts[5])
             except ValueError:
@@ -74,10 +74,11 @@ def parse_visdrone_annotation(ann_path: Path):
     return boxes, skipped
 
 
+# ── format converter ──────────────────────────────────────────
 def convert_to_yolo_format(boxes: list, img_w: int, img_h: int):
     """
-    Convert VisDrone boxes to YOLO normalized format.
-    Input  : (cat, x_topleft, y_topleft, w, h) in pixels
+    Convert VisDrone pixel boxes to YOLO normalized format.
+    Input  : list of (cat, x_topleft, y_topleft, w, h) in pixels
     Output : list of strings "class cx cy w h" normalized to [0, 1]
     """
     yolo_lines = []
@@ -99,6 +100,7 @@ def convert_to_yolo_format(boxes: list, img_w: int, img_h: int):
     return yolo_lines
 
 
+# ── image size reader ─────────────────────────────────────────
 def get_image_size(img_path: Path):
     """
     Read image width and height without loading full pixel data.
@@ -110,11 +112,16 @@ def get_image_size(img_path: Path):
 
 
 # ── per-split conversion ──────────────────────────────────────
-def convert_split(img_dir: Path, ann_dir: Path, label_dir: Path, split_name: str):
+def convert_split(
+    img_dir    : Path,
+    ann_dir    : Path,
+    label_dir  : Path,
+    split_name : str,
+):
     """
     Convert one dataset split (train or val).
     Writes one YOLO .txt label file per image into label_dir.
-    Returns summary dict.
+    Returns summary dict with counts.
     """
     label_dir.mkdir(parents=True, exist_ok=True)
 
@@ -180,18 +187,21 @@ def convert_split(img_dir: Path, ann_dir: Path, label_dir: Path, split_name: str
     return summary
 
 
-# ── det.yaml generation ───────────────────────────────────────
+# ── det.yaml generator ────────────────────────────────────────
 def generate_det_yaml(paths: dict, out_path: Path):
     """
     Generate det.yaml required by YOLO training.
-    Uses absolute paths to avoid working-directory issues on Kaggle.
+    Points train/val to image directories.
+    YOLO auto-resolves label paths by replacing 'images' with 'labels'.
+    On Kaggle, Cell 5 of kaggle_launcher.ipynb creates symlinks so
+    images and labels sit as siblings under /kaggle/working/Dataset/.
     """
     det_yaml = {
-        "path" : str(paths["det_train"].parent),
-        "train": str(paths["det_train_images"]),
-        "val"  : str(paths["det_val_images"]),
-        "nc"   : len(VISDRONE_CLASSES),
-        "names": [VISDRONE_CLASSES[k] for k in sorted(VISDRONE_CLASSES)],
+        "path"  : str(paths["det_train"].parent),
+        "train" : str(paths["det_train_images"]),
+        "val"   : str(paths["det_val_images"]),
+        "nc"    : len(VISDRONE_CLASSES),
+        "names" : [VISDRONE_CLASSES[k] for k in sorted(VISDRONE_CLASSES)],
     }
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

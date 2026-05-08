@@ -6,9 +6,21 @@ def get_paths() -> dict:
     """
     Auto-detect runtime environment and return all project paths.
     Supports: local Windows/Linux development and Kaggle GPU environment.
+
+    On Kaggle:
+        - /kaggle/input/ is read-only — cannot write labels there.
+        - Cell 5 of kaggle_launcher.ipynb creates symlinks under
+          /kaggle/working/Dataset/ mirroring images and annotations
+          from /kaggle/input/. Labels are written alongside symlinked
+          images so YOLO auto-resolves them correctly.
+        - base_data points to /kaggle/working/Dataset/
+
+    Locally:
+        - base_data points to project Dataset/ folder directly.
+        - Labels written alongside images inside Dataset/.
     """
     if os.path.exists("/kaggle/input"):
-        base_data = Path("/kaggle/input/datasets/krantiprakash/dataset/Dataset")
+        base_data = Path("/kaggle/working/Dataset")
         base_work = Path("/kaggle/working")
         base_root = Path("/kaggle/working")
     else:
@@ -17,32 +29,32 @@ def get_paths() -> dict:
         base_work = base_root / "output"
 
     paths = {
-        # dataset roots
+        # ── dataset roots ─────────────────────────────────────
         "det_train"       : base_data / "VisDrone2019-DET-train",
         "det_val"         : base_data / "VisDrone2019-DET-val",
         "det_test"        : base_data / "VisDrone2019-DET-test",
         "mot_val"         : base_data / "VisDrone2019-MOT-val",
 
-        # DET train subfolders
+        # ── DET train subfolders ───────────────────────────────
         "det_train_images": base_data / "VisDrone2019-DET-train" / "images",
         "det_train_ann"   : base_data / "VisDrone2019-DET-train" / "annotations",
         "det_train_labels": base_data / "VisDrone2019-DET-train" / "labels",
 
-        # DET val subfolders
+        # ── DET val subfolders ─────────────────────────────────
         "det_val_images"  : base_data / "VisDrone2019-DET-val" / "images",
         "det_val_ann"     : base_data / "VisDrone2019-DET-val" / "annotations",
         "det_val_labels"  : base_data / "VisDrone2019-DET-val" / "labels",
 
-        # DET test subfolders
+        # ── DET test subfolders (optional) ─────────────────────
         "det_test_images" : base_data / "VisDrone2019-DET-test" / "images",
         "det_test_ann"    : base_data / "VisDrone2019-DET-test" / "annotations",
         "det_test_labels" : base_data / "VisDrone2019-DET-test" / "labels",
 
-        # MOT val subfolders
+        # ── MOT val subfolders ─────────────────────────────────
         "mot_val_seq"     : base_data / "VisDrone2019-MOT-val" / "sequences",
         "mot_val_ann"     : base_data / "VisDrone2019-MOT-val" / "annotations",
 
-        # output folders per stage
+        # ── output folders per stage ───────────────────────────
         "out_data"        : base_work / "data",
         "out_detection"   : base_work / "detection",
         "out_reid"        : base_work / "reid",
@@ -50,13 +62,14 @@ def get_paths() -> dict:
         "out_evaluation"  : base_work / "evaluation",
         "out_export"      : base_work / "export",
 
-        # project root
+        # ── project root ───────────────────────────────────────
         "root"            : base_root,
     }
 
-    # create all output directories automatically
-    output_keys = [k for k in paths if k.startswith("out_")]
-    for key in output_keys:
+    # create output dirs and label dirs automatically
+    # symlinked image/annotation dirs are created by kaggle_launcher.ipynb
+    writable_keys = [k for k in paths if k.startswith("out_") or k.endswith("_labels")]
+    for key in writable_keys:
         paths[key].mkdir(parents=True, exist_ok=True)
 
     return paths
@@ -65,8 +78,8 @@ def get_paths() -> dict:
 def verify_paths(paths: dict) -> None:
     """
     Verify required dataset input paths exist.
-    Test paths are optional — skipped if not found.
-    Raises FileNotFoundError if any required path is missing.
+    Raises FileNotFoundError with clear message if any required path is missing.
+    Test paths are optional — prints warning if not found but does not raise.
     """
     required_keys = [
         "det_train_images",
