@@ -72,11 +72,17 @@ def verify_paths(paths: dict) -> None:
         "det_train_ann",
         "det_val_images",
         "det_val_ann",
-        "det_test_images",
-        "det_test_ann",
         "mot_val_seq",
         "mot_val_ann",
     ]
+
+    # verify test paths only if they exist locally
+    test_keys = ["det_test_images", "det_test_ann"]
+    for key in test_keys:
+        if paths[key].exists():
+            print(f"[paths] Test path found: {paths[key]}")
+        else:
+            print(f"[paths] Test path not found (skipping): {paths[key]}")
     for key in input_keys:
         path = paths[key]
         if not path.exists():
