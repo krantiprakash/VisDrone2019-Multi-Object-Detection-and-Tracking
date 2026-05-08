@@ -191,15 +191,15 @@ def convert_split(
 def generate_det_yaml(paths: dict, out_path: Path):
     """
     Generate det.yaml required by YOLO training.
-    Points train/val to label directories directly.
-    Ultralytics resolves image paths by replacing 'labels' with 'images'.
-    This avoids the symlink real-path resolution issue on Kaggle where
-    YOLO follows symlinks back to /kaggle/input/ and cannot find labels.
+    Points train/val to image directories.
+    YOLO auto-resolves label paths by replacing 'images' with 'labels'.
+    On Kaggle, images are copied to /kaggle/working/Dataset/ and labels
+    are written alongside them so YOLO resolution works correctly.
     """
     det_yaml = {
         "path"  : str(paths["det_train"].parent),
-        "train" : str(paths["det_train_labels"]),
-        "val"   : str(paths["det_val_labels"]),
+        "train" : str(paths["det_train_images"]),
+        "val"   : str(paths["det_val_images"]),
         "nc"    : len(VISDRONE_CLASSES),
         "names" : [VISDRONE_CLASSES[k] for k in sorted(VISDRONE_CLASSES)],
     }

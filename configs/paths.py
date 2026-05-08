@@ -8,11 +8,11 @@ def get_paths() -> dict:
     Supports: local Windows/Linux development and Kaggle GPU environment.
 
     On Kaggle:
-        - /kaggle/input/ is read-only — cannot write labels there.
-        - Cell 5 of kaggle_launcher.ipynb creates symlinks under
-          /kaggle/working/Dataset/ mirroring images and annotations
-          from /kaggle/input/. Labels are written alongside symlinked
-          images so YOLO auto-resolves them correctly.
+        - /kaggle/input/ is read-only.
+        - Cell 5 of kaggle_launcher.ipynb copies images and annotations
+          from /kaggle/input/ to /kaggle/working/Dataset/ (writable, 20GB).
+        - Labels are written alongside copied images so YOLO resolves
+          them correctly by replacing 'images' with 'labels'.
         - base_data points to /kaggle/working/Dataset/
 
     Locally:
@@ -29,7 +29,7 @@ def get_paths() -> dict:
         base_work = base_root / "output"
 
     paths = {
-        # ── dataset roots ─────────────────────────────────────
+        # ── dataset roots ──────────────────────────────────────
         "det_train"       : base_data / "VisDrone2019-DET-train",
         "det_val"         : base_data / "VisDrone2019-DET-val",
         "det_test"        : base_data / "VisDrone2019-DET-test",
@@ -67,7 +67,8 @@ def get_paths() -> dict:
     }
 
     # create output dirs and label dirs automatically
-    # symlinked image/annotation dirs are created by kaggle_launcher.ipynb
+    # images and annotations are copied by Cell 5 on Kaggle
+    # locally they already exist inside Dataset/
     writable_keys = [k for k in paths if k.startswith("out_") or k.endswith("_labels")]
     for key in writable_keys:
         paths[key].mkdir(parents=True, exist_ok=True)
