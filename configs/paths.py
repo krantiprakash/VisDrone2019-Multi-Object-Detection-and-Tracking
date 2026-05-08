@@ -64,10 +64,11 @@ def get_paths() -> dict:
 
 def verify_paths(paths: dict) -> None:
     """
-    Verify all dataset input paths exist.
-    Raises FileNotFoundError with clear message if any path is missing.
+    Verify required dataset input paths exist.
+    Test paths are optional — skipped if not found.
+    Raises FileNotFoundError if any required path is missing.
     """
-    input_keys = [
+    required_keys = [
         "det_train_images",
         "det_train_ann",
         "det_val_images",
@@ -76,21 +77,23 @@ def verify_paths(paths: dict) -> None:
         "mot_val_ann",
     ]
 
-    # verify test paths only if they exist locally
-    test_keys = ["det_test_images", "det_test_ann"]
-    for key in test_keys:
-        if paths[key].exists():
-            print(f"[paths] Test path found: {paths[key]}")
-        else:
-            print(f"[paths] Test path not found (skipping): {paths[key]}")
-    for key in input_keys:
+    for key in required_keys:
         path = paths[key]
         if not path.exists():
             raise FileNotFoundError(
-                f"Missing dataset path [{key}]: {path}\n"
+                f"Missing required dataset path [{key}]: {path}\n"
                 f"Check your Dataset folder structure."
             )
-    print("[paths] All dataset paths verified.")
+
+    print("[paths] All required dataset paths verified.")
+
+    optional_keys = ["det_test_images", "det_test_ann"]
+    for key in optional_keys:
+        path = paths[key]
+        if path.exists():
+            print(f"[paths] Optional path found     [{key}]: {path}")
+        else:
+            print(f"[paths] Optional path not found [{key}]: {path} (skipping)")
 
 
 if __name__ == "__main__":
