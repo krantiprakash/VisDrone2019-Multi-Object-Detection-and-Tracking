@@ -156,6 +156,7 @@ def train(paths: dict, settings: dict) -> None:
         model = YOLO(str(last_pt))
         model.train(
             resume  = True,
+            epochs  = det_cfg["epochs"],
             device  = device,
             project = str(out_dir),
             name    = "yolo26x_visdrone",
