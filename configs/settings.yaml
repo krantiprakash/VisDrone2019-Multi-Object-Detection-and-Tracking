@@ -1,7 +1,7 @@
 detection:
   model         : yolo26x.pt
   imgsz         : 1024
-  epochs        : 30
+  epochs        : 45
   batch         : 2
   lr0           : 0.01
   patience      : 10
