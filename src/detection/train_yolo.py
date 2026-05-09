@@ -152,15 +152,28 @@ def train(paths: dict, settings: dict) -> None:
     device    = det_cfg["device"] if torch.cuda.is_available() else "cpu"
 
     if last_pt.exists():
-        print(f"\n[train] Resuming from checkpoint: {last_pt}")
+        print(f"\n[train] Loading checkpoint: {last_pt}")
+        print(f"[train] Running additional fine-tuning for {det_cfg['epochs']} epochs...")
         model = YOLO(str(last_pt))
+
+        total_params = sum(p.numel() for p in model.model.parameters())
+        print(f"  total params : {total_params:,}")
+        print(f"  note         : all params fine-tuned, requires_grad set internally by Ultralytics")
+
         model.train(
-            resume  = True,
-            epochs  = det_cfg["epochs"],
-            device  = device,
-            project = str(out_dir),
-            name    = "yolo26x_visdrone",
-            exist_ok= True,
+            data       = str(det_yaml),
+            epochs     = det_cfg["epochs"],
+            imgsz      = det_cfg["imgsz"],
+            batch      = det_cfg["batch"],
+            lr0        = det_cfg["lr0"],
+            patience   = det_cfg["patience"],
+            workers    = det_cfg["workers"],
+            device     = device,
+            project    = str(out_dir),
+            name       = "yolo26x_visdrone",
+            exist_ok   = True,
+            pretrained = True,
+            verbose    = True,
         )
     else:
         print("\n[train] No checkpoint found. Starting fresh fine-tuning...")
