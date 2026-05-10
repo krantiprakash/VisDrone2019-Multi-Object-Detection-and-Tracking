@@ -322,7 +322,6 @@ if __name__ == "__main__":
         img_id_map = img_id_map,
         sahi_cfg   = sahi_cfg,
         device     = device,
-        max_images = 10,        # remove this line for full evaluation on Kaggle
     )
 
     # evaluate
