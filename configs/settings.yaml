@@ -12,7 +12,7 @@ sahi:
   slice_height  : 640
   slice_width   : 640
   overlap_ratio : 0.2
-  confidence    : 0.25
+  confidence    : 0.3
 
 reid:                          # initial defaults — tune after training
   backbone      : osnet_x1_0

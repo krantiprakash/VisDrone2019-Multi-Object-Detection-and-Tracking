@@ -14,12 +14,15 @@ def get_paths() -> dict:
         - Labels are written alongside copied images so YOLO resolves
           them correctly by replacing 'images' with 'labels'.
         - base_data points to /kaggle/working/Dataset/
+        - DET-test data is in a separate Kaggle dataset — handled separately.
 
     Locally:
         - base_data points to project Dataset/ folder directly.
         - Labels written alongside images inside Dataset/.
     """
-    if os.path.exists("/kaggle/input"):
+    on_kaggle = os.path.exists("/kaggle/input")
+
+    if on_kaggle:
         base_data = Path("/kaggle/working/Dataset")
         base_work = Path("/kaggle/working")
         base_root = Path("/kaggle/working")
@@ -28,11 +31,22 @@ def get_paths() -> dict:
         base_data = base_root / "Dataset"
         base_work = base_root / "output"
 
+    # ── DET test paths differ on Kaggle (separate dataset) ────
+    if on_kaggle:
+        det_test_root   = Path("/kaggle/input/datasets/krantiprakash/visdrone2019-det-test/VisDrone2019-DET-test")
+        det_test_images = det_test_root / "images"
+        det_test_ann    = det_test_root / "annotations"
+        det_test_labels = base_data / "VisDrone2019-DET-test" / "labels"
+    else:
+        det_test_images = base_data / "VisDrone2019-DET-test" / "images"
+        det_test_ann    = base_data / "VisDrone2019-DET-test" / "annotations"
+        det_test_labels = base_data / "VisDrone2019-DET-test" / "labels"
+
     paths = {
         # ── dataset roots ──────────────────────────────────────
         "det_train"       : base_data / "VisDrone2019-DET-train",
         "det_val"         : base_data / "VisDrone2019-DET-val",
-        "det_test"        : base_data / "VisDrone2019-DET-test",
+        "det_test"        : det_test_images.parent,
         "mot_val"         : base_data / "VisDrone2019-MOT-val",
 
         # ── DET train subfolders ───────────────────────────────
@@ -46,9 +60,9 @@ def get_paths() -> dict:
         "det_val_labels"  : base_data / "VisDrone2019-DET-val" / "labels",
 
         # ── DET test subfolders (optional) ─────────────────────
-        "det_test_images" : base_data / "VisDrone2019-DET-test" / "images",
-        "det_test_ann"    : base_data / "VisDrone2019-DET-test" / "annotations",
-        "det_test_labels" : base_data / "VisDrone2019-DET-test" / "labels",
+        "det_test_images" : det_test_images,
+        "det_test_ann"    : det_test_ann,
+        "det_test_labels" : det_test_labels,
 
         # ── MOT val subfolders ─────────────────────────────────
         "mot_val_seq"     : base_data / "VisDrone2019-MOT-val" / "sequences",
@@ -67,8 +81,6 @@ def get_paths() -> dict:
     }
 
     # create output dirs and label dirs automatically
-    # images and annotations are copied by Cell 5 on Kaggle
-    # locally they already exist inside Dataset/
     writable_keys = [k for k in paths if k.startswith("out_") or k.endswith("_labels")]
     for key in writable_keys:
         paths[key].mkdir(parents=True, exist_ok=True)
