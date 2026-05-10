@@ -1,10 +1,10 @@
 detection:
   model         : yolo26x.pt
-  imgsz         : 1024
-  epochs        : 45
-  batch         : 2
+  imgsz         : 1280
+  batch         : 8
+  epochs        : 50
   lr0           : 0.01
-  patience      : 10
+  patience      : 15
   workers       : 4
   device        : 0            # GPU index; set to "cpu" if no GPU
 
