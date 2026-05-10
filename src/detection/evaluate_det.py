@@ -48,7 +48,6 @@ def build_coco_gt(img_dir: Path, ann_dir: Path) -> dict:
     """
     Build COCO-format ground truth from VisDrone DET annotations.
     Filters: score==1, class in VISDRONE_CLASSES, w>0, h>0.
-
     Returns COCO gt dict with keys: images, annotations, categories.
     """
     ann_files = sorted([f for f in ann_dir.iterdir() if f.suffix == ".txt"])
@@ -77,10 +76,10 @@ def build_coco_gt(img_dir: Path, ann_dir: Path) -> dict:
             img_w, img_h = img.size
 
         images.append({
-            "id"    : img_id,
+            "id"       : img_id,
             "file_name": img_file.name,
-            "width" : img_w,
-            "height": img_h,
+            "width"    : img_w,
+            "height"   : img_h,
         })
 
         with open(ann_file, "r") as f:
@@ -122,33 +121,26 @@ def build_coco_gt(img_dir: Path, ann_dir: Path) -> dict:
 
 # ── SAHI inference ────────────────────────────────────────────
 def run_sahi_inference(
-    model_path  : Path,
-    img_dir     : Path,
-    img_id_map  : dict,
-    sahi_cfg    : dict,
-    device      : str,
-    max_images  : int = None,
+    model_path : Path,
+    img_dir    : Path,
+    img_id_map : dict,
+    sahi_cfg   : dict,
+    device     : str,
 ) -> list:
     """
     Run SAHI sliced inference on all images in img_dir.
     img_id_map: dict mapping filename -> image_id (from COCO GT)
-
     Returns list of COCO-format detection dicts.
     """
     detection_model = AutoDetectionModel.from_pretrained(
-        model_type  = "ultralytics",
-        model_path  = str(model_path),
+        model_type           = "ultralytics",
+        model_path           = str(model_path),
         confidence_threshold = sahi_cfg["confidence"],
-        device      = device,
+        device               = device,
     )
 
-    img_files   = sorted([f for f in img_dir.iterdir() if f.suffix == ".jpg"])
-
-    if max_images is not None:
-        img_files = img_files[:max_images]
-        print(f"  max_images : {max_images} (local test mode)")
-
-    coco_dt     = []
+    img_files = sorted([f for f in img_dir.iterdir() if f.suffix == ".jpg"])
+    coco_dt   = []
 
     print(f"\n[SAHI] Running sliced inference on {len(img_files)} images...")
     print(f"  slice    : {sahi_cfg['slice_height']}x{sahi_cfg['slice_width']}")
@@ -162,27 +154,26 @@ def run_sahi_inference(
         img_id = img_id_map[img_file.name]
 
         result = get_sliced_prediction(
-            image                    = str(img_file),
-            detection_model          = detection_model,
-            slice_height             = sahi_cfg["slice_height"],
-            slice_width              = sahi_cfg["slice_width"],
-            overlap_height_ratio     = sahi_cfg["overlap_ratio"],
-            overlap_width_ratio      = sahi_cfg["overlap_ratio"],
-            perform_standard_pred    = True,
-            postprocess_type         = "NMM",
-            postprocess_match_metric = "IOU",
+            image                       = str(img_file),
+            detection_model             = detection_model,
+            slice_height                = sahi_cfg["slice_height"],
+            slice_width                 = sahi_cfg["slice_width"],
+            overlap_height_ratio        = sahi_cfg["overlap_ratio"],
+            overlap_width_ratio         = sahi_cfg["overlap_ratio"],
+            perform_standard_pred       = True,
+            postprocess_type            = "NMM",
+            postprocess_match_metric    = "IOU",
             postprocess_match_threshold = 0.5,
-            verbose                  = 0,
+            verbose                     = 0,
         )
 
         for obj in result.object_prediction_list:
-            bbox  = obj.bbox
-            x1    = bbox.minx
-            y1    = bbox.miny
-            w     = bbox.maxx - bbox.minx
-            h     = bbox.maxy - bbox.miny
-            score = obj.score.value
-            # SAHI returns 0-indexed category — add 1 for COCO 1-indexed
+            bbox   = obj.bbox
+            x1     = bbox.minx
+            y1     = bbox.miny
+            w      = bbox.maxx - bbox.minx
+            h      = bbox.maxy - bbox.miny
+            score  = obj.score.value
             cat_id = obj.category.id + 1
 
             if w <= 0 or h <= 0:
@@ -220,7 +211,7 @@ def evaluate_coco(coco_gt_dict: dict, coco_dt_list: list) -> dict:
             "recall"   : 0.0,
         }
 
-    coco_dt  = coco_gt.loadRes(coco_dt_list)
+    coco_dt   = coco_gt.loadRes(coco_dt_list)
     coco_eval = COCOeval(coco_gt, coco_dt, "bbox")
     coco_eval.evaluate()
     coco_eval.accumulate()
@@ -245,24 +236,24 @@ def evaluate_coco(coco_gt_dict: dict, coco_dt_list: list) -> dict:
     # per-class mAP50
     per_class = {}
     for cat_id, cat_info in coco_gt.cats.items():
-        coco_eval_cls             = COCOeval(coco_gt, coco_dt, "bbox")
+        coco_eval_cls               = COCOeval(coco_gt, coco_dt, "bbox")
         coco_eval_cls.params.catIds = [cat_id]
         coco_eval_cls.evaluate()
         coco_eval_cls.accumulate()
+        coco_eval_cls.summarize()
         if len(coco_eval_cls.stats) > 1:
             per_class[cat_info["name"]] = round(float(coco_eval_cls.stats[1]), 4)
         else:
             per_class[cat_info["name"]] = 0.0
 
     results["per_class_mAP50"] = per_class
-
     return results
 
 
 # ── summary printer ───────────────────────────────────────────
-def print_results(results: dict) -> None:
+def print_results(results: dict, split: str = "test") -> None:
     print("\n" + "=" * 50)
-    print("DETECTION EVALUATION RESULTS (DET-test)")
+    print(f"DETECTION EVALUATION RESULTS (DET-{split})")
     print("=" * 50)
     print(f"  mAP@0.50       : {results['mAP50']}")
     print(f"  mAP@0.50:0.95  : {results['mAP5095']}")
@@ -281,20 +272,32 @@ if __name__ == "__main__":
     import os
     import torch
 
-    paths    = get_paths()
+    paths = get_paths()
     verify_paths(paths)
 
     settings_path = Path(__file__).resolve().parents[2] / "configs" / "settings.yaml"
     settings      = load_settings(settings_path)
     sahi_cfg      = settings["sahi"]
 
-    on_kaggle  = os.path.exists("/kaggle/input")
-    device     = "cuda" if torch.cuda.is_available() else "cpu"
+    on_kaggle = os.path.exists("/kaggle/input")
+    device    = "cuda" if torch.cuda.is_available() else "cpu"
 
     if on_kaggle:
         model_path = Path("/kaggle/input/datasets/krantiprakash/visdrone-weight/weights/best.pt")
     else:
         model_path = paths["out_detection"] / "yolo26x_visdrone" / "weights" / "best.pt"
+
+    # set EVAL_SPLIT to "test" or "val"
+    EVAL_SPLIT = "val"
+
+    if EVAL_SPLIT == "test":
+        eval_img_dir = paths["det_test_images"]
+        eval_ann_dir = paths["det_test_ann"]
+        result_fname = "detection_results_test.json"
+    else:
+        eval_img_dir = paths["det_val_images"]
+        eval_ann_dir = paths["det_val_ann"]
+        result_fname = "detection_results_val.json"
 
     if not model_path.exists():
         raise FileNotFoundError(
@@ -302,35 +305,31 @@ if __name__ == "__main__":
             f"Run src/detection/train_yolo.py first."
         )
 
-    print(f"\n[eval] Model   : {model_path}")
-    print(f"[eval] Device  : {device}")
-    print(f"[eval] Test set: {paths['det_test_images']}")
+    print(f"\n[eval] Model     : {model_path}")
+    print(f"[eval] Device    : {device}")
+    print(f"[eval] Split     : {EVAL_SPLIT}")
+    print(f"[eval] Image dir : {eval_img_dir}")
 
-    # build COCO ground truth
     coco_gt_dict = build_coco_gt(
-        img_dir = paths["det_test_images"],
-        ann_dir = paths["det_test_ann"],
+        img_dir = eval_img_dir,
+        ann_dir = eval_ann_dir,
     )
 
-    # build image filename -> id map for SAHI
     img_id_map = {img["file_name"]: img["id"] for img in coco_gt_dict["images"]}
 
-    # run SAHI inference
     coco_dt_list = run_sahi_inference(
         model_path = model_path,
-        img_dir    = paths["det_test_images"],
+        img_dir    = eval_img_dir,
         img_id_map = img_id_map,
         sahi_cfg   = sahi_cfg,
         device     = device,
     )
 
-    # evaluate
     results = evaluate_coco(coco_gt_dict, coco_dt_list)
 
-    # print and save
-    print_results(results)
+    print_results(results, split=EVAL_SPLIT)
 
-    out_path = paths["out_evaluation"] / "detection_results.json"
+    out_path = paths["out_evaluation"] / result_fname
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
