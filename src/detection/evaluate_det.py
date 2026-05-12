@@ -283,13 +283,12 @@ if __name__ == "__main__":
     device    = "cuda" if torch.cuda.is_available() else "cpu"
 
     if on_kaggle:
-        model_path = Path("/kaggle/input/datasets/krantiprakash/visdrone-weight/weights/best.pt")
+        model_path = Path("/kaggle/input/datasets/krantiprakash/visdrone-weights-v1/Weights/best.pt")
     else:
         model_path = paths["out_detection"] / "yolo26x_visdrone" / "weights" / "best.pt"
 
     # set EVAL_SPLIT to "test" or "val"
-    # EVAL_SPLIT = "val"
-    EVAL_SPLIT = "test"
+    EVAL_SPLIT = "val"
 
     if EVAL_SPLIT == "test":
         eval_img_dir = paths["det_test_images"]
