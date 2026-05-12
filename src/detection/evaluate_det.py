@@ -288,7 +288,8 @@ if __name__ == "__main__":
         model_path = paths["out_detection"] / "yolo26x_visdrone" / "weights" / "best.pt"
 
     # set EVAL_SPLIT to "test" or "val"
-    EVAL_SPLIT = "val"
+    EVAL_SPLIT = "test"
+    # EVAL_SPLIT = "val"
 
     if EVAL_SPLIT == "test":
         eval_img_dir = paths["det_test_images"]
