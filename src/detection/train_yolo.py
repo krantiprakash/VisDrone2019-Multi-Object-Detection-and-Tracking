@@ -9,6 +9,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from ultralytics import YOLO
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from configs.paths import get_paths, verify_paths
 
@@ -152,6 +158,25 @@ def train(paths: dict, settings: dict) -> None:
     det_cfg = settings["detection"]
     out_dir = paths["out_detection"]
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── wandb login ───────────────────────────────────────────
+    # Ultralytics auto-logs to wandb once login succeeds.
+    # API key is stored in Kaggle Secrets under "WANDB_API_KEY".
+    if WANDB_AVAILABLE:
+        on_kaggle = os.path.exists("/kaggle/input")
+        if on_kaggle:
+            try:
+                from kaggle_secrets import UserSecretsClient
+                wandb_key = UserSecretsClient().get_secret("WANDB_API_KEY")
+                wandb.login(key=wandb_key)
+                print("[wandb] Logged in successfully.")
+            except Exception as e:
+                print(f"[wandb] Login failed: {e}. Training will continue without wandb.")
+        else:
+            print("[wandb] Not on Kaggle — skipping secret-based login.")
+            print("[wandb] Run `wandb login` locally if you want local tracking.")
+    else:
+        print("[wandb] wandb not installed — skipping.")
 
     last_pt = out_dir / "yolo26x_visdrone" / "weights" / "last.pt"
     device  = det_cfg["device"] if torch.cuda.is_available() else "cpu"
