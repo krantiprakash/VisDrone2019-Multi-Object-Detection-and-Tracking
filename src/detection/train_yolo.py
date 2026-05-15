@@ -32,6 +32,7 @@ def validate_det_yaml(det_yaml_path: Path) -> None:
     """
     Confirm det.yaml exists and contains required keys.
     Raises FileNotFoundError or KeyError with clear message if invalid.
+    Only called for fresh training — resume reads its own config from last.pt.
     """
     if not det_yaml_path.exists():
         raise FileNotFoundError(
@@ -109,13 +110,14 @@ def save_outputs_for_download(train_out_dir: Path, download_dir: Path) -> None:
     """
     Copy key training outputs to a single flat folder for easy
     download from Kaggle output panel.
-    Files copied: best.pt, results.csv, train_loss_curve.png,
+    Files copied: best.pt, last.pt, results.csv, train_loss_curve.png,
     val_loss_curve.png, results.png, confusion_matrix.png.
     """
     download_dir.mkdir(parents=True, exist_ok=True)
 
     files_to_copy = [
         train_out_dir / "weights" / "best.pt",
+        train_out_dir / "weights" / "last.pt",
         train_out_dir / "results.csv",
         train_out_dir / "results.png",
         train_out_dir / "confusion_matrix.png",
@@ -128,7 +130,7 @@ def save_outputs_for_download(train_out_dir: Path, download_dir: Path) -> None:
         if src.exists():
             dst = download_dir / src.name
             shutil.copy2(src, dst)
-            print(f"  copied: {src.name}")
+            print(f"  copied : {src.name}")
         else:
             print(f"  missing: {src.name}")
 
@@ -138,63 +140,54 @@ def save_outputs_for_download(train_out_dir: Path, download_dir: Path) -> None:
 # ── training ──────────────────────────────────────────────────
 def train(paths: dict, settings: dict) -> None:
     """
-    Fine-tune YOLO26x on VisDrone-DET using parameters from settings.yaml.
-    Saves best checkpoint and plots to output/detection/.
+    Fine-tune YOLO26x on VisDrone-DET.
+
+    Two modes:
+      1. Resume  — last.pt found at expected path → model.train(resume=True)
+                   restores epoch count, optimizer state, LR scheduler exactly
+                   where Kaggle cut off. No extra args needed or allowed.
+      2. Fresh   — no checkpoint found → loads yolo26x.pt pretrained weights,
+                   trains from scratch using settings.yaml hyperparameters.
     """
-    det_cfg  = settings["detection"]
-    det_yaml = paths["out_data"] / "det.yaml"
-
-    validate_det_yaml(det_yaml)
-
+    det_cfg = settings["detection"]
     out_dir = paths["out_detection"]
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    last_pt   = out_dir / "yolo26x_visdrone" / "weights" / "last.pt"
-    device    = det_cfg["device"] if torch.cuda.is_available() else "cpu"
+    last_pt = out_dir / "yolo26x_visdrone" / "weights" / "last.pt"
+    device  = det_cfg["device"] if torch.cuda.is_available() else "cpu"
 
     if last_pt.exists():
-        print(f"\n[train] Loading checkpoint: {last_pt}")
-        print(f"[train] Running additional fine-tuning for {det_cfg['epochs']} epochs...")
+        # ── RESUME ────────────────────────────────────────────
+        # resume=True reads ALL config from last.pt:
+        # epoch count, optimizer state, LR scheduler, data path,
+        # imgsz, batch, etc. Passing any of these again would be
+        # ignored or cause a conflict — so we pass nothing extra.
+        print(f"\n[train] Resuming from checkpoint : {last_pt}")
+        print(f"[train] Epoch count, optimizer state and LR schedule")
+        print(f"        restored automatically from last.pt.")
         model = YOLO(str(last_pt))
+        model.train(resume=True)
 
-        total_params = sum(p.numel() for p in model.model.parameters())
-        print(f"  total params : {total_params:,}")
-        print(f"  note         : all params fine-tuned, requires_grad set internally by Ultralytics")
-
-        model.train(
-            data       = str(det_yaml),
-            epochs     = det_cfg["epochs"],
-            imgsz      = det_cfg["imgsz"],
-            batch      = det_cfg["batch"],
-            lr0        = det_cfg["lr0"],
-            patience   = det_cfg["patience"],
-            workers    = det_cfg["workers"],
-            device     = device,
-            project    = str(out_dir),
-            name       = "yolo26x_visdrone",
-            exist_ok   = True,
-            pretrained = True,
-            verbose    = True,
-        )
     else:
+        # ── FRESH TRAINING ────────────────────────────────────
+        det_yaml = paths["out_data"] / "det.yaml"
+        validate_det_yaml(det_yaml)
+
         print("\n[train] No checkpoint found. Starting fresh fine-tuning...")
         model = YOLO(det_cfg["model"])
 
         total_params = sum(p.numel() for p in model.model.parameters())
         print(f"  total params : {total_params:,}")
-        print(f"  note         : all params fine-tuned, requires_grad set internally by Ultralytics")
-
-        print("[train] Starting fine-tuning on VisDrone-DET...")
-        print(f"  model    : {det_cfg['model']}")
-        print(f"  imgsz    : {det_cfg['imgsz']}")
-        print(f"  epochs   : {det_cfg['epochs']}")
-        print(f"  batch    : {det_cfg['batch']}")
-        print(f"  lr0      : {det_cfg['lr0']}")
-        print(f"  patience : {det_cfg['patience']}")
-        print(f"  workers  : {det_cfg['workers']}")
-        print(f"  device   : {device}")
-        print(f"  data     : {det_yaml}")
-        print(f"  save_dir : {out_dir}\n")
+        print(f"  model        : {det_cfg['model']}")
+        print(f"  imgsz        : {det_cfg['imgsz']}")
+        print(f"  epochs       : {det_cfg['epochs']}")
+        print(f"  batch        : {det_cfg['batch']}")
+        print(f"  lr0          : {det_cfg['lr0']}")
+        print(f"  patience     : {det_cfg['patience']}")
+        print(f"  workers      : {det_cfg['workers']}")
+        print(f"  device       : {device}")
+        print(f"  data         : {det_yaml}")
+        print(f"  save_dir     : {out_dir}\n")
 
         model.train(
             data       = str(det_yaml),
@@ -212,18 +205,19 @@ def train(paths: dict, settings: dict) -> None:
             verbose    = True,
         )
 
+    # ── post-training ─────────────────────────────────────────
     train_out_dir = out_dir / "yolo26x_visdrone"
     best_pt       = train_out_dir / "weights" / "best.pt"
 
     if best_pt.exists():
-        print(f"\n[train] Best checkpoint saved: {best_pt}")
+        print(f"\n[train] Best checkpoint saved : {best_pt}")
     else:
         print("\n[train] WARNING: best.pt not found. Check training logs.")
 
-    curves_dir = out_dir / "curves"
-    plot_loss_curves(train_out_dir / "results.csv", curves_dir)
-
+    curves_dir   = out_dir / "curves"
     download_dir = out_dir / "download"
+
+    plot_loss_curves(train_out_dir / "results.csv", curves_dir)
     save_outputs_for_download(train_out_dir, download_dir)
 
 
