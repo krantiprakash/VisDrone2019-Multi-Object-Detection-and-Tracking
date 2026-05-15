@@ -33,7 +33,7 @@ def get_paths() -> dict:
 
     # ── DET test paths differ on Kaggle (separate dataset) ────
     if on_kaggle:
-        det_test_root   = Path("/kaggle/input/datasets/krantiprakash/visdrone2019-det-test/VisDrone2019-DET-test")
+        det_test_root   = Path("/kaggle/input/datasets/krantiprakash15/visdrone2019-det-test/VisDrone2019-DET-test")
         det_test_images = det_test_root / "images"
         det_test_ann    = det_test_root / "annotations"
         det_test_labels = base_data / "VisDrone2019-DET-test" / "labels"
